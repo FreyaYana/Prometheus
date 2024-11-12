@@ -1,5 +1,6 @@
-# docker build -t pro-gmail .
-# docker run -it -p 2345:2345 pro-gmail
+# docker build -f Dockerfile -t goapp .
+# docker run -it -p 1234:1234 goapp
+# WITH Go Modules
 
 FROM golang:alpine AS builder
 
@@ -7,19 +8,19 @@ FROM golang:alpine AS builder
 # Git is required for fetching the dependencies.
 RUN apk update && apk add --no-cache git
 
-RUN mkdir /pro
-ADD ./gConnect.go /pro/
-WORKDIR /pro
+RUN mkdir $GOPATH/src/server
+ADD ./app.go $GOPATH/src/server
+WORKDIR $GOPATH/src/server
 RUN go mod init
 RUN go mod tidy
-RUN go build -o server gConnect.go
+RUN go mod download
+RUN mkdir /pro
+RUN go build -o /pro/server app.go
 
 FROM alpine:latest
 
 RUN mkdir /pro
-ADD ./credentials.json /pro/
-ADD ./token.json /pro/
 COPY --from=builder /pro/server /pro/server
-EXPOSE 2345
+EXPOSE 1234
 WORKDIR /pro
 CMD ["/pro/server"]

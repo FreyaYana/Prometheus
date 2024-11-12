@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"log"
-	"math/rand"
 	"time"
+
+	monitoring "promo/monitoring"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,50 +26,46 @@ var (
 			Name:      "my_counter",
 			Help:      "This is my counter",
 		})
-
-	gauge = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "custom",
-			Name:      "my_gauge",
-			Help:      "This is my gauge",
-		})
-
-	histogram = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Namespace: "custom",
-			Name:      "my_histogram",
-			Help:      "This is my histogram",
-		})
-
-	summary = prometheus.NewSummary(
-		prometheus.SummaryOpts{
-			Namespace: "custom",
-			Name:      "my_summary",
-			Help:      "This is my summary",
-		})
 )
 
 func main() {
-	rand.Seed(time.Now().Unix())
 
-	http.Handle("/metrics", promhttp.Handler())
+	monitoring.Init()
 
-	prometheus.MustRegister(counter)
-	prometheus.MustRegister(gauge)
-	prometheus.MustRegister(histogram)
-	prometheus.MustRegister(summary)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
 
-	go func() {
-		for {
-			counter.Add(rand.Float64() * 5)
-			gauge.Add(rand.Float64()*15 - 5)
-			histogram.Observe(rand.Float64() * 10)
-			summary.Observe(rand.Float64() * 10)
-
-			time.Sleep(2 * time.Second)
+	mux.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
+		delayStr := r.URL.Query().Get("delay")
+		if delayStr != "" {
+			if delay, err := strconv.Atoi(delayStr); err == nil {
+				time.Sleep(time.Duration(delay) * time.Millisecond)
+			} else {
+				fmt.Fprintf(w, "Invalid delay value. Using no delay.\n")
+			}
 		}
-	}()
 
-	log.Println("Listening to port", PORT)
-	log.Println(http.ListenAndServe(PORT, nil))
+		fmt.Fprintf(w, "Echo: %s", delayStr)
+	})
+	mux.HandleFunc("/echo2", func(w http.ResponseWriter, r *http.Request) {
+		delayStr := r.URL.Query().Get("delay")
+		if delayStr != "" {
+			if delay, err := strconv.Atoi(delayStr); err == nil {
+				time.Sleep(time.Duration(delay) * time.Millisecond)
+			} else {
+				fmt.Fprintf(w, "Invalid delay value. Using no delay.\n")
+			}
+		}
+
+		counter.Inc()
+		fmt.Fprintf(w, "Echo: %s", delayStr)
+	})
+
+	wrappedMux := monitoring.PrometheusMiddleware(mux)
+
+	//prometheus.MustRegister(counter)
+
+	// Запуск HTTP сервера
+	log.Println("Starting server on", PORT)
+	log.Fatal(http.ListenAndServe(PORT, wrappedMux))
 }
