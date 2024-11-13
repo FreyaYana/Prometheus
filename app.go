@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	monitoring "promo/monitoring"
+	monitoring "github.com/FreyaYana/Prometheus/monitoring"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
