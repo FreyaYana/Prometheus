@@ -22,31 +22,42 @@ var (
 			Help:    "Duration of HTTP requests in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"path"},
+		[]string{}, //"method", "code"},
 	)
-	requestCount = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
-		},
-		[]string{"path", "method", "status"},
-	)
+	// requestCount = prometheus.NewCounterVec(
+	// 	prometheus.CounterOpts{
+	// 		Name: "http_requests_total",
+	// 		Help: "Total number of HTTP requests",
+	// 	},
+	// 	[]string{"method", "code"},
+	// )
 )
 
 func Init() {
 	prometheus.MustRegister(requestDuration)
-	prometheus.MustRegister(requestCount)
+	//prometheus.MustRegister(requestCount)
 }
 
 func PrometheusMiddleware(handler http.Handler) http.Handler {
-	instrumentedHandler := promhttp.InstrumentHandlerDuration(
-		requestDuration,
-		promhttp.InstrumentHandlerCounter(
-			requestCount,
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Создаём новый обработчик с метками для текущего запроса
+		instrumentedHandler := promhttp.InstrumentHandlerDuration(
+			requestDuration, //.MustCurryWith(prometheus.Labels{"path": r.URL.Path}),
+			// 	promhttp.InstrumentHandlerCounter(
+			// 		requestCount,
 			handler,
-		),
-	)
-	return instrumentedHandler
+		)
+		// )
+
+		// instrumentedHandler := promhttp.InstrumentHandlerCounter(
+		// 	requestCount,
+		// 	handler,
+		// )
+
+		// Обрабатываем запрос
+		instrumentedHandler.ServeHTTP(w, r)
+	})
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {

@@ -17,3 +17,5 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
 )
+
+replace github.com/FreyaYana/Prometheus/monitoring => ../go.mod

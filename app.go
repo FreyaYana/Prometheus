@@ -8,10 +8,10 @@ import (
 	"log"
 	"time"
 
-	monitoring "github.com/FreyaYana/Prometheus/monitoring"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	monitoring "github.com/FreyaYana/Prometheus/monitoring"
 )
 
 // PORT is the TCP port number the server will listen to
@@ -29,6 +29,8 @@ var (
 )
 
 func main() {
+
+	fmt.Printf("Nooo1")
 
 	monitoring.Init()
 
@@ -63,7 +65,7 @@ func main() {
 
 	wrappedMux := monitoring.PrometheusMiddleware(mux)
 
-	//prometheus.MustRegister(counter)
+	prometheus.MustRegister(counter)
 
 	// Запуск HTTP сервера
 	log.Println("Starting server on", PORT)
